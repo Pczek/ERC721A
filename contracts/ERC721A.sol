@@ -19,6 +19,7 @@ error ApprovalToCurrentOwner();
 error BalanceQueryForZeroAddress();
 error MintedQueryForZeroAddress();
 error BurnedQueryForZeroAddress();
+error AuxQueryForZeroAddress();
 error MintToZeroAddress();
 error MintZeroQuantity();
 error OwnerIndexOutOfBounds();
@@ -38,7 +39,7 @@ error URIQueryForNonexistentToken();
  *
  * Assumes that an owner cannot have more than 2**64 - 1 (max value of uint64) of supply.
  *
- * Assumes that the maximum token id cannot exceed 2**128 - 1 (max value of uint128).
+ * Assumes that the maximum token id cannot exceed 2**256 - 1 (max value of uint256).
  */
 contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable {
     using Address for address;
@@ -62,16 +63,17 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
         uint64 numberMinted;
         // Keeps track of burn count with minimal overhead for tokenomics.
         uint64 numberBurned;
+        // For miscellaneous variable(s) pertaining to the address
+        // (e.g. number of whitelist mint slots used). 
+        // If there are multiple variables, please pack them into a uint64.
+        uint64 aux;
     }
-
-    // Compiler will pack the following 
-    // _currentIndex and _burnCounter into a single 256bit word.
     
     // The id of the next token to be minted.
-    uint128 internal _currentIndex;
+    uint256 internal _currentIndex;
 
     // The number of tokens burned.
-    uint128 internal _burnCounter;
+    uint256 internal _burnCounter;
 
     // Token name
     string private _name;
@@ -95,17 +97,11 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
     constructor(string memory name_, string memory symbol_) {
         _name = name_;
         _symbol = symbol_;
-        _currentIndex = uint128(_startTokenId());
+        _currentIndex = _startTokenId();
     }
 
     /**
      * To change the starting tokenId, please override this function.
-     * 
-     * This function must return a constant which is small enough such that
-     * the maximum tokenId that can ever be minted will not exceed 
-     * 2**128 - 1 (max value of uint128).
-     * 
-     * The return type is (uint256) for gas efficiency purposes.
      */
     function _startTokenId() internal view virtual returns (uint256) {
         return 0;
@@ -145,6 +141,33 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
             }
         }
         revert TokenIndexOutOfBounds();
+    }
+
+    /**
+     * @dev Returns the token IDs of the owner.
+     * This read function is O(totalSupply). If calling from a separate contract, be sure to test gas first.
+     * It may also degrade with extremely large collection sizes (e.g >> 10000), test for your use case.
+     */
+    function tokensOfOwner(address owner) external view returns (uint256[] memory) {
+        unchecked {
+            uint256[] memory a = new uint256[](balanceOf(owner)); 
+            uint256 end = _currentIndex;
+            uint256 tokenIdsIdx;
+            address currOwnershipAddr;
+            for (uint256 i; i < end; i++) {
+                TokenOwnership memory ownership = _ownerships[i];
+                if (ownership.burned) {
+                    continue;
+                }
+                if (ownership.addr != address(0)) {
+                    currOwnershipAddr = ownership.addr;
+                }
+                if (currOwnershipAddr == owner) {
+                    a[tokenIdsIdx++] = i;
+                }
+            }
+            return a;    
+        }
     }
 
     /**
@@ -209,6 +232,16 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
     function _numberBurned(address owner) internal view returns (uint256) {
         if (owner == address(0)) revert BurnedQueryForZeroAddress();
         return uint256(_addressData[owner].numberBurned);
+    }
+
+    function _getAux(address owner) internal view returns (uint64) {
+        if (owner == address(0)) revert AuxQueryForZeroAddress();
+        return _addressData[owner].aux;
+    }
+
+    function _setAux(address owner, uint64 aux) internal {
+        if (owner == address(0)) revert AuxQueryForZeroAddress();
+        _addressData[owner].aux = aux;
     }
 
     /**
@@ -416,8 +449,8 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
         _beforeTokenTransfers(address(0), to, startTokenId, quantity);
 
         // Overflows are incredibly unrealistic.
-        // balance or numberMinted overflow if current value of either + quantity > 3.4e38 (2**128) - 1
-        // updatedIndex overflows if _currentIndex + quantity > 3.4e38 (2**128) - 1
+        // balance or numberMinted overflow if current value of either + quantity > 1.8e19 (2**64) - 1
+        // updatedIndex overflows if _currentIndex + quantity > 1.2e77 (2**256) - 1
         unchecked {
             _addressData[to].balance += uint64(quantity);
             _addressData[to].numberMinted += uint64(quantity);
@@ -435,7 +468,7 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
                 updatedIndex++;
             }
 
-            _currentIndex = uint128(updatedIndex);
+            _currentIndex = updatedIndex;
         }
         _afterTokenTransfers(address(0), to, startTokenId, quantity);
     }
@@ -472,7 +505,7 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
 
         // Underflow of the sender's balance is impossible because we check for
         // ownership above and the recipient's balance can't realistically overflow.
-        // Counter overflow is incredibly unrealistic as tokenId would have to be 2**128.
+        // Counter overflow is incredibly unrealistic as tokenId would have to be 2**256.
         unchecked {
             _addressData[from].balance -= 1;
             _addressData[to].balance += 1;
@@ -517,7 +550,7 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
 
         // Underflow of the sender's balance is impossible because we check for
         // ownership above and the recipient's balance can't realistically overflow.
-        // Counter overflow is incredibly unrealistic as tokenId would have to be 2**128.
+        // Counter overflow is incredibly unrealistic as tokenId would have to be 2**256.
         unchecked {
             _addressData[prevOwnership.addr].balance -= 1;
             _addressData[prevOwnership.addr].numberBurned += 1;
