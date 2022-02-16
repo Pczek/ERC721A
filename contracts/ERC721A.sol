@@ -41,7 +41,7 @@ error URIQueryForNonexistentToken();
  *
  * Assumes that the maximum token id cannot exceed 2**256 - 1 (max value of uint256).
  */
-contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable {
+contract ERC721A is Context, ERC165, IERC721, IERC721Metadata {
     using Address for address;
     using Strings for uint256;
 
@@ -110,99 +110,12 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
     /**
      * @dev See {IERC721Enumerable-totalSupply}.
      */
-    function totalSupply() public view override returns (uint256) {
+    function totalSupply() public view returns (uint256) {
         // Counter underflow is impossible as _burnCounter cannot be incremented
         // more than _currentIndex - _startTokenId() times
         unchecked {
             return _currentIndex - _burnCounter - _startTokenId();    
         }
-    }
-
-    /**
-     * @dev See {IERC721Enumerable-tokenByIndex}.
-     * This read function is O(totalSupply). If calling from a separate contract, be sure to test gas first.
-     * It may also degrade with extremely large collection sizes (e.g >> 10000), test for your use case.
-     */
-    function tokenByIndex(uint256 index) public view override returns (uint256) {
-        uint256 end = _currentIndex;
-        uint256 tokenIdsIdx;
-
-        // Counter overflow is impossible as the loop breaks when
-        // uint256 i is equal to another uint256 end.
-        unchecked {
-            for (uint256 i = _startTokenId(); i < end; i++) {
-                TokenOwnership memory ownership = _ownerships[i];
-                if (!ownership.burned) {
-                    if (tokenIdsIdx == index) {
-                        return i;
-                    }
-                    tokenIdsIdx++;
-                }
-            }
-        }
-        revert TokenIndexOutOfBounds();
-    }
-
-    /**
-     * @dev Returns the token IDs of the owner.
-     * This read function is O(totalSupply). If calling from a separate contract, be sure to test gas first.
-     * It may also degrade with extremely large collection sizes (e.g >> 10000), test for your use case.
-     */
-    function tokensOfOwner(address owner) external view returns (uint256[] memory) {
-        unchecked {
-            uint256[] memory a = new uint256[](balanceOf(owner)); 
-            uint256 end = _currentIndex;
-            uint256 tokenIdsIdx;
-            address currOwnershipAddr;
-            for (uint256 i; i < end; i++) {
-                TokenOwnership memory ownership = _ownerships[i];
-                if (ownership.burned) {
-                    continue;
-                }
-                if (ownership.addr != address(0)) {
-                    currOwnershipAddr = ownership.addr;
-                }
-                if (currOwnershipAddr == owner) {
-                    a[tokenIdsIdx++] = i;
-                }
-            }
-            return a;    
-        }
-    }
-
-    /**
-     * @dev See {IERC721Enumerable-tokenOfOwnerByIndex}.
-     * This read function is O(totalSupply). If calling from a separate contract, be sure to test gas first.
-     * It may also degrade with extremely large collection sizes (e.g >> 10000), test for your use case.
-     */
-    function tokenOfOwnerByIndex(address owner, uint256 index) public view override returns (uint256) {
-        if (index >= balanceOf(owner)) revert OwnerIndexOutOfBounds();
-        uint256 end = _currentIndex;
-        uint256 tokenIdsIdx;
-        address currOwnershipAddr;
-
-        // Counter overflow is impossible as the loop breaks when
-        // uint256 i is equal to another uint256 end.
-        unchecked {
-            for (uint256 i = _startTokenId(); i < end; i++) {
-                TokenOwnership memory ownership = _ownerships[i];
-                if (ownership.burned) {
-                    continue;
-                }
-                if (ownership.addr != address(0)) {
-                    currOwnershipAddr = ownership.addr;
-                }
-                if (currOwnershipAddr == owner) {
-                    if (tokenIdsIdx == index) {
-                        return i;
-                    }
-                    tokenIdsIdx++;
-                }
-            }
-        }
-
-        // Execution should never reach this point.
-        revert();
     }
 
     /**
