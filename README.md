@@ -54,7 +54,6 @@ contract Azuki is ERC721A {
 
 ## Roadmap
 
-- [] Add flexibility for the first token id to not start at 0
 - [] Support ERC721 Upgradeable
 - [] Add more documentation on benefits of using ERC721A
 - [] Increase test coverage
@@ -97,7 +96,6 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 - 2pm.flow (owner) - [@2pmflow](https://twitter.com/2pmflow)
 - location tba (owner) - [@locationtba](https://twitter.com/locationtba)
 - cygaar (maintainer) - [@cygaar_dev](https://twitter.com/cygaar_dev)
-- vectorized.eth (maintainer) - [@vectorized_dev](https://twitter.com/vectorized_dev)
 
 Project Link: [https://github.com/chiru-labs/ERC721A](https://github.com/chiru-labs/ERC721A)
 
