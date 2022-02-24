@@ -16,6 +16,10 @@ contract ERC721AMock is ERC721A {
         return _totalMinted();
     }
 
+    function directBurn(uint256 tokenId) public {
+        _burn(tokenId);
+    }
+
     function getAux(address owner) public view returns (uint64) {
         return _getAux(owner);
     }
