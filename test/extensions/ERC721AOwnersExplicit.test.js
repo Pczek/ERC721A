@@ -4,11 +4,11 @@ const { ZERO_ADDRESS } = constants;
 
 describe('ERC721AOwnersExplicit', function () {
 
-  const testsFor = function (className, startTokenId) {
+  const testsFor = function (startTokenId) {
     return async function () {
       beforeEach(async function () {
-        this.ERC721AOwnersExplicit = await ethers.getContractFactory(className);
-        this.token = await this.ERC721AOwnersExplicit.deploy('Azuki', 'AZUKI');
+        this.ERC721AOwnersExplicit = await ethers.getContractFactory('ERC721AOwnersExplicitMock');
+        this.token = await this.ERC721AOwnersExplicit.deploy('Azuki', 'AZUKI', startTokenId);
         await this.token.deployed();
       });
 
@@ -88,6 +88,6 @@ describe('ERC721AOwnersExplicit', function () {
     };
   };
 
-  context('0-indexed', testsFor('ERC721AOwnersExplicitMock', 0));
-  context('1-indexed', testsFor('ERC721AStartOneOwnersExplicitMock', 1));
+  context('0-indexed', testsFor(0));
+  context('1-indexed', testsFor(1));
 });

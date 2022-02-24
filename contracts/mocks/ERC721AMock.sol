@@ -4,9 +4,17 @@
 pragma solidity ^0.8.4;
 
 import '../ERC721A.sol';
+import './CustomStartTokenIdMock.sol';
 
-contract ERC721AMock is ERC721A {
-    constructor(string memory name_, string memory symbol_) ERC721A(name_, symbol_) {}
+contract ERC721AMock is CustomStartTokenIdMock, ERC721A {
+
+    constructor(string memory name_, string memory symbol_, uint256 startTokenId_) 
+    CustomStartTokenIdMock(startTokenId_)
+    ERC721A(name_, symbol_) {}
+
+    function _startTokenId() internal view override returns (uint256) {
+        return startTokenId;
+    }
 
     function numberMinted(address owner) public view returns (uint256) {
         return _numberMinted(owner);

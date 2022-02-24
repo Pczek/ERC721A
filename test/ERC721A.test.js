@@ -7,12 +7,12 @@ const GAS_MAGIC_VALUE = 20000;
 
 describe('ERC721A', function () {
 
-  const testsFor = function (className, startTokenId) {
+  const testsFor = function (startTokenId) {
     return async function () {
       beforeEach(async function () {
-        this.ERC721A = await ethers.getContractFactory(className);
+        this.ERC721A = await ethers.getContractFactory('ERC721AMock');
         this.ERC721Receiver = await ethers.getContractFactory('ERC721ReceiverMock');
-        this.erc721a = await this.ERC721A.deploy('Azuki', 'AZUKI');
+        this.erc721a = await this.ERC721A.deploy('Azuki', 'AZUKI', startTokenId);
         await this.erc721a.deployed();
       });
 
@@ -352,6 +352,6 @@ describe('ERC721A', function () {
     }
   };
 
-  context('0-indexed', testsFor('ERC721AMock', 0));
-  context('1-indexed', testsFor('ERC721AStartOneMock', 1));
+  context('0-indexed', testsFor(0));
+  context('1-indexed', testsFor(1));
 });
